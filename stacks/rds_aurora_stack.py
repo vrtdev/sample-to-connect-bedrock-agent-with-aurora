@@ -91,7 +91,7 @@ class RDSAuroraStack(Stack):
             db_cluster_identifier=construct_id,
             db_subnet_group_name=db_subnet_group.db_subnet_group_name,
             engine="aurora-postgresql",
-            engine_version="16.2",
+            engine_version=engine_version,
             database_name=database_name,
             master_username=CfnDynamicReference(
                 CfnDynamicReferenceService.SECRETS_MANAGER,
