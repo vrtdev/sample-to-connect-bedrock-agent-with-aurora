@@ -256,7 +256,7 @@ class RDSAuroraStack(Stack):
         CfnOutput(
             self,
             "ADMIN_SECRET_ARN",
-            value=readonly_credentials.attr_id,
+            value=secret.attr_id,
             export_name="AdminSecretARN",
         )
         CfnOutput(
