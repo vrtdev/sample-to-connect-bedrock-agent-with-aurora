@@ -5,10 +5,15 @@ from typing import Dict, Any, Optional, Union
 from enum import Enum
 from dataclasses import dataclass
 
+SCHEMA = None
+bedrock_client = None
 
-bedrock_runtime = boto3.client(
-    service_name="bedrock-runtime",
-)
+try:
+    SCHEMA = read_schema_file()
+    bedrock_client = boto3.client("bedrock-runtime")
+except Exception as e:
+    print(f"Failed to initialize: {str(e)}")
+    raise
 
 rds_data = boto3.client("rds-data")
 
@@ -182,10 +187,11 @@ def validate_query(sql_query):
 
 
 def generate_query(question):
+    if not SCHEMA:
+        raise ValueError("Schema not initialized")
+
     # Validate input before processing
     validated_question = validate_input(question)
-    # Load schema from file instead
-    schema_content = read_schema_file()
     # Construct the prompt with schema context
     contexts = f"""
     <Instructions>
@@ -199,7 +205,7 @@ def generate_query(question):
         7. Qualify column names with the table name when needed.
         8. Return only the sql query without any tags.
     </Instructions>
-    <database_schema>{schema_content}</database_schema>
+    <database_schema>{SCHEMA}</database_schema>
 
     <examples>
     <question>"How many users do we have?"</question>
