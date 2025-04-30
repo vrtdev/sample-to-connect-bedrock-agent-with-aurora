@@ -281,6 +281,17 @@ class BedrockAgentStack(Stack):
 }
         """
 
+        # Add permission to Apply Bedrock Guardrail
+        apply_guardrail_policy = agent_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["bedrock:ApplyGuardrail"],
+                resources=[
+                    f"arn:aws:bedrock:{Stack.of(self).region}:{Stack.of(self).account}:guardrail/{guardrail.attr_guardrail_id}",
+                ],
+            )
+        )
+
         # Create Bedrock Agent
         agent = bedrock.CfnAgent(
             self,
@@ -288,7 +299,7 @@ class BedrockAgentStack(Stack):
             agent_name="query-agent",
             agent_resource_role_arn=agent_role.role_arn,
             foundation_model="anthropic.claude-v2",
-            instruction="You are a SQL query assistant that helps users interact with a PostgreSQL database. You can generate SQL queries based on natural language prompts and execute queries against the database. Always validate queries for security before execution.Use the generate-query action to create SQL queries and the execute-query action to run them.",
+            instruction=" You are a SQL query assistant that helps users interact with a PostgreSQL database. You can generate read only (SELECT) SQL queries based on natural language prompts and execute queries against the database. Do not generate SQL queries that can modify or update any underlying data or schema in the database. Always validate queries for security before execution. Use the generate-query action to create SQL queries and the execute-query action to run them.",
             description="SQL Query Assistant for PostgreSQL Database",
             idle_session_ttl_in_seconds=1800,
             guardrail_configuration=bedrock.CfnAgent.GuardrailConfigurationProperty(
