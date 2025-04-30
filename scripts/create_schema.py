@@ -3,7 +3,9 @@ import json
 
 # Define your AWS Aurora PostgreSQL configuration
 CLUSTER_ARN = "Update with RDSAuroraStack.CLUSTERARN"  # Replace with your cluster ARN
-ADMIN_SECRET_ARN = "Update with RDSAuroraStack.ADMINSECRETARN"  # Replace with your secret ARN
+ADMIN_SECRET_ARN = (
+    "Update with RDSAuroraStack.ADMINSECRETARN"  # Replace with your secret ARN
+)
 DB_NAME = "postgres"  # Replace with your database name
 
 # Initialize RDS Data client
@@ -128,8 +130,8 @@ def create_schema_and_ingest_data():
 
     # Execute drop statements
     print("Cleaning up existing schemas...")
-    for drop in drops:
-        execute_statement(drop)
+    # for drop in drops:
+    # execute_statement(drop)
 
     # Execute schema creation
     print("Creating schemas...")
