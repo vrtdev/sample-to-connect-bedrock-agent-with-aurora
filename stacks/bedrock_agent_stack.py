@@ -1,5 +1,4 @@
-# import json
-# import aws_cdk as cdk
+
 from aws_cdk import (
     Stack,
     # aws_ec2 as ec2,
@@ -18,14 +17,33 @@ class BedrockAgentStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # cluster_arn = cdk.Fn.import_value("ClusterARN")
-        # secret_arn = cdk.Fn.import_value("ReadOnlySecretARN")
-        # db_name = cdk.Fn.import_value("DBName")
-        model_id = self.node.try_get_context("model_id")
+        # CloudFormation Parameters
+        cluster_arn_param = CfnParameter(
+            self,
+            "ClusterARN",
+            type="String",
+            description="ARN of the RDS Aurora cluster",
+        )
 
-        cluster_arn = CfnParameter(self, "ClusterARN", type="String", description="ClusterARN.")
-        secret_arn = CfnParameter(self, "ReadOnlySecretARN", type="String", description="ReadOnlySecretARN.")
-        db_name = CfnParameter(self, "DBName", type="String", description="DBName.")
+        secret_arn_param = CfnParameter(
+            self,
+            "ReadOnlySecretARN",
+            type="String",
+            description="ARN of the read-only secret for database access",
+        )
+
+        db_name_param = CfnParameter(
+            self,
+            "DBName",
+            type="String",
+            description="Name of the database",
+        )
+
+        # Get parameter values
+        cluster_arn = cluster_arn_param.value_as_string
+        secret_arn = secret_arn_param.value_as_string
+        db_name = db_name_param.value_as_string
+        model_id = self.node.try_get_context("model_id")
 
         # Create IAM role for Lambda
         generate_query_lambda_role = iam.Role(
@@ -58,13 +76,13 @@ class BedrockAgentStack(Stack):
         generate_query_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["rds-data:ExecuteStatement"],
-                resources=[cluster_arn.value_as_string],
+                resources=[cluster_arn],
             )
         )
         generate_query_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["secretsmanager:GetSecretValue"],
-                resources=[secret_arn.value_as_string],
+                resources=[secret_arn],
             )
         )
 
@@ -77,9 +95,9 @@ class BedrockAgentStack(Stack):
             code=lambda_.Code.from_asset("lambda/action_group"),
             timeout=Duration.seconds(30),
             environment={
-                "READONLY_SECRET_ARN": secret_arn.value_as_string,
-                "DB_NAME": db_name.value_as_string,
-                "CLUSTER_ARN": cluster_arn.value_as_string,
+                "READONLY_SECRET_ARN": secret_arn,
+                "DB_NAME": db_name,
+                "CLUSTER_ARN": cluster_arn,
                 "model_id": model_id,
             },
             role=generate_query_lambda_role,
@@ -118,7 +136,6 @@ class BedrockAgentStack(Stack):
         )
 
         # Add permission to invoke Model
-        # invoke_model_policy = agent_role.add_to_policy(
         agent_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
@@ -135,7 +152,6 @@ class BedrockAgentStack(Stack):
         )
 
         # Add permission to invoke the Lambda function
-        # invoke_lambda_policy = agent_role.add_to_policy(
         agent_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
@@ -296,7 +312,6 @@ class BedrockAgentStack(Stack):
         """
 
         # Add permission to Apply Bedrock Guardrail
-        # apply_guardrail_policy = agent_role.add_to_policy(
         agent_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
@@ -307,13 +322,24 @@ class BedrockAgentStack(Stack):
             )
         )
 
+        # try to not have a premission denied error
+        # ToDo: FineTune this
+        agent_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["bedrock:*"],
+                resources=["*"],
+            )
+        )
+
         # Create Bedrock Agent
         agent = bedrock.CfnAgent(
             self,
             "QueryAgent",
             agent_name="query-agent",
             agent_resource_role_arn=agent_role.role_arn,
-            foundation_model="anthropic.claude-v2",
+            foundation_model=model_id,  # "anthropic.claude-v2",
+            auto_prepare=True,
             instruction="""
                 You are a SQL query assistant that helps users interact with a PostgreSQL database.
                 You can generate read only (SELECT) SQL queries based on natural language prompts
@@ -353,16 +379,16 @@ class BedrockAgentStack(Stack):
                 ),
             ],
         )
-        agent.node.add_dependency(generate_query_lambda)
+        agent.node.add_dependency(agent_role)
 
         # Create agent alias
-        agent_alias = bedrock.CfnAgentAlias(
-            self,
-            "QueryAgentAlias",
-            agent_alias_name="prod",
-            agent_id=agent.ref,
-        )
+        # agent_alias = bedrock.CfnAgentAlias(
+        #     self,
+        #     "QueryAgentAlias",
+        #     agent_alias_name="prod",
+        #     agent_id=agent.ref,
+        # )
 
         # Outputs
         CfnOutput(self, "AgentId", value=agent.ref)
-        CfnOutput(self, "AgentAliasId", value=agent_alias.ref)
+        # CfnOutput(self, "AgentAliasId", value=agent_alias.ref)
