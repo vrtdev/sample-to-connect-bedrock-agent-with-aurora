@@ -1,7 +1,7 @@
 import json
 import boto3
 import os
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 from enum import Enum
 from dataclasses import dataclass
 
@@ -89,19 +89,40 @@ class BedrockResponseBuilder:
         )
 
 
-# Add function to read SQL file
-def read_schema_file():
-    try:
-        # Get the directory where the lambda function code is located
-        lambda_dir = os.path.dirname(os.path.abspath(__file__))
-        schema_path = os.path.join(lambda_dir, "schema.sql")
+# Function to get database schema and cache it
+def get_database_schema():
+    """
+    Fetch database schema from PostgreSQL and cache it in memory.
+    """
+    
+    print(f"Fetching schema from database: {DB_NAME}")
 
-        with open(schema_path, "r") as file:
-            schema_content = file.read()
-        return schema_content
-    except Exception as e:
-        print(f"Error reading schema file: {str(e)}")
-        raise
+    # Query to get comprehensive schema information
+    schema_query = """
+    SELECT 
+        t.table_name,
+        t.table_type,
+        c.column_name,
+        c.data_type,
+        c.is_nullable,
+        c.column_default,
+        tc.constraint_type,
+        kcu.constraint_name
+    FROM information_schema.tables t
+    LEFT JOIN information_schema.columns c ON t.table_name = c.table_name
+    LEFT JOIN information_schema.key_column_usage kcu ON c.table_name = kcu.table_name 
+        AND c.column_name = kcu.column_name
+    LEFT JOIN information_schema.table_constraints tc ON kcu.constraint_name = tc.constraint_name
+    WHERE t.table_schema = 'public'
+    ORDER BY t.table_name, c.ordinal_position;
+    """
+
+    # Execute schema query
+    response = execute_query(schema_query, as_json=True)
+
+    # Cache the schema
+    schema_text = json.dumps(response["formattedRecords"])
+    return schema_text
 
 
 def generate_message(bedrock_runtime, model_id, system_prompt, messages, max_tokens):
@@ -188,7 +209,7 @@ def generate_query(question):
     # Construct the prompt with schema context
     contexts = f"""
     <Instructions>
-        Read database schema inside the <database_schema></database_schema> tags which contains the tables and schema information to do the following:
+        Read database schema inside the <database_schema></database_schema> tags which contains the tables and schema information in a structured JSON format, to do the following:
         1. Create a syntactically correct SQL query to answer the question.
         2. Format the query to remove any new line with space and produce a single line query.
         3. Never query for all the columns from a specific table, only ask for a few relevant columns given the question.
@@ -237,7 +258,7 @@ def generate_query(question):
     return llm_response["content"][0]["text"]
 
 
-def execute_query(query, parameters=None):
+def execute_query(query, parameters=None, as_json=False):
     try:
         # Base request parameters
         request_params = {
@@ -250,6 +271,9 @@ def execute_query(query, parameters=None):
         # Only add parameters if they exist and are not empty
         if parameters and len(parameters) > 0:
             request_params["parameters"] = parameters
+        
+        if as_json:
+            request_params["formatRecordsAs"] = "JSON"
 
         # Execute the query
         response = rds_data.execute_statement(**request_params)
@@ -292,6 +316,8 @@ def handle_generate(properties, action_group):
 
     except Exception as e:
         print(f"Error in generate: {str(e)}")
+        print(e)
+        print(e.with_traceback)
         return BedrockResponseBuilder.error(
             ErrorType.SERVER_ERROR, action_group, "/generate", str(e)
         )
@@ -342,7 +368,7 @@ def handle_execute(properties, action_group):
 
 
 try:
-    schema = read_schema_file()
+    schema = get_database_schema()
     bedrock_runtime = boto3.client("bedrock-runtime")
 except Exception as e:
     print(f"Failed to initialize: {str(e)}")

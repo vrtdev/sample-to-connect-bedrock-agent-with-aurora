@@ -1,25 +1,46 @@
-import json
 import aws_cdk as cdk
 from aws_cdk import (
     Stack,
-    aws_ec2 as ec2,
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_bedrock as bedrock,
     Duration,
     CfnOutput,
+    CfnParameter,
 )
 from constructs import Construct
 
 
 class BedrockAgentStack(Stack):
-
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        cluster_arn = cdk.Fn.import_value("ClusterARN")
-        secret_arn = cdk.Fn.import_value("ReadOnlySecretARN")
-        db_name = cdk.Fn.import_value("DBName")
+        # CloudFormation Parameters
+        cluster_arn_param = CfnParameter(
+            self,
+            "ClusterARN",
+            type="String",
+            description="ARN of the RDS Aurora cluster",
+        )
+
+        secret_arn_param = CfnParameter(
+            self,
+            "ReadOnlySecretARN",
+            type="String",
+            description="ARN of the read-only secret for database access",
+        )
+
+        db_name_param = CfnParameter(
+            self,
+            "DBName",
+            type="String",
+            description="Name of the database",
+        )
+
+        # Get parameter values
+        cluster_arn = cluster_arn_param.value_as_string
+        secret_arn = secret_arn_param.value_as_string
+        db_name = db_name_param.value_as_string
         model_id = self.node.try_get_context("model_id")
 
         # Create IAM role for Lambda
@@ -111,18 +132,23 @@ class BedrockAgentStack(Stack):
         )
 
         # Add permission to invoke Model
-        invoke_model_policy = agent_role.add_to_policy(
+        agent_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
-                actions=["bedrock:InvokeModel"],
+                actions=[
+                    "bedrock:InvokeModel",
+                    "bedrock:GetInferenceProfile",
+                ],
                 resources=[
-                    f"arn:aws:bedrock:{Stack.of(self).region}::foundation-model/*"
+                    f"arn:aws:bedrock:{Stack.of(self).region}::foundation-model/*",
+                    f"arn:aws:bedrock:{Stack.of(self).region}:{Stack.of(self).account}:inference-profile/eu.*",
+                    "*",
                 ],
             )
         )
 
         # Add permission to invoke the Lambda function
-        invoke_lambda_policy = agent_role.add_to_policy(
+        agent_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["lambda:InvokeFunction"],
@@ -282,13 +308,21 @@ class BedrockAgentStack(Stack):
         """
 
         # Add permission to Apply Bedrock Guardrail
-        apply_guardrail_policy = agent_role.add_to_policy(
+        agent_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["bedrock:ApplyGuardrail"],
                 resources=[
                     f"arn:aws:bedrock:{Stack.of(self).region}:{Stack.of(self).account}:guardrail/{guardrail.attr_guardrail_id}",
                 ],
+            )
+        )
+        # try to not have a premission denied error
+        agent_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["bedrock:*"],
+                resources=["*"],
             )
         )
 
@@ -298,7 +332,9 @@ class BedrockAgentStack(Stack):
             "QueryAgent",
             agent_name="query-agent",
             agent_resource_role_arn=agent_role.role_arn,
-            foundation_model="anthropic.claude-v2",
+            # aws bedrock list-inference-profiles
+            foundation_model="eu.anthropic.claude-3-5-sonnet-20240620-v1:0",
+            auto_prepare=True,
             instruction=" You are a SQL query assistant that helps users interact with a PostgreSQL database. You can generate read only (SELECT) SQL queries based on natural language prompts and execute queries against the database. Do not generate SQL queries that can modify or update any underlying data or schema in the database. Always validate queries for security before execution. Use the generate-query action to create SQL queries and the execute-query action to run them.",
             description="SQL Query Assistant for PostgreSQL Database",
             idle_session_ttl_in_seconds=1800,
@@ -331,16 +367,16 @@ class BedrockAgentStack(Stack):
                 ),
             ],
         )
-        agent.node.add_dependency(generate_query_lambda)
+        agent.node.add_dependency(agent_role)
 
         # Create agent alias
-        agent_alias = bedrock.CfnAgentAlias(
-            self,
-            "QueryAgentAlias",
-            agent_alias_name="prod",
-            agent_id=agent.ref,
-        )
+        # agent_alias = bedrock.CfnAgentAlias(
+        #     self,
+        #     "QueryAgentAlias",
+        #     agent_alias_name="prod",
+        #     agent_id=agent.ref,
+        # )
 
         # Outputs
         CfnOutput(self, "AgentId", value=agent.ref)
-        CfnOutput(self, "AgentAliasId", value=agent_alias.ref)
+        # CfnOutput(self, "AgentAliasId", value=agent_alias.ref)
