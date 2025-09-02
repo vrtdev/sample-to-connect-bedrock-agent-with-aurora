@@ -1,5 +1,5 @@
 import boto3
-import json
+# import json
 
 # Define your AWS Aurora PostgreSQL configuration
 CLUSTER_ARN = "Update with RDSAuroraStack.CLUSTERARN"  # Replace with your cluster ARN
@@ -27,12 +27,12 @@ def create_schema_and_ingest_data():
 
     # Cleanup existing schemas
 
-    drops = [
-        "DROP SCHEMA academics CASCADE;",
-        "DROP SCHEMA staff CASCADE;",
-        "DROP SCHEMA facilities CASCADE;",
-        "DROP SCHEMA research CASCADE;",
-    ]
+    # drops = [
+    #     "DROP SCHEMA academics CASCADE;",
+    #     "DROP SCHEMA staff CASCADE;",
+    #     "DROP SCHEMA facilities CASCADE;",
+    #     "DROP SCHEMA research CASCADE;",
+    # ]
 
     # Schema creation statements
     schemas = [
@@ -211,7 +211,10 @@ def create_schema_and_ingest_data():
             ],
         ),
         (
-            "INSERT INTO academics.students (first_name, last_name, date_of_birth, enrollment_date, major_department_id) VALUES (:fname, :lname, CAST(:dob AS DATE), CAST(:enroll_date AS DATE), :dept_id)",
+            """
+                INSERT INTO academics.students (first_name, last_name, date_of_birth, enrollment_date, major_department_id)
+                VALUES (:fname, :lname, CAST(:dob AS DATE), CAST(:enroll_date AS DATE), :dept_id)
+            """,
             [
                 [
                     {"name": "fname", "value": {"stringValue": "John"}},
@@ -237,7 +240,10 @@ def create_schema_and_ingest_data():
             ],
         ),
         (
-            "INSERT INTO academics.enrollments (student_id, course_id, semester, year, grade) VALUES (:student_id, :course_id, :semester, :year, :grade)",
+            """
+                INSERT INTO academics.enrollments (student_id, course_id, semester, year, grade)
+                VALUES (:student_id, :course_id, :semester, :year, :grade)
+            """,
             [
                 [
                     {"name": "student_id", "value": {"longValue": 1}},  # Alice Johnson
@@ -287,7 +293,10 @@ def create_schema_and_ingest_data():
             ],
         ),
         (
-            "INSERT INTO staff.employees (first_name, last_name, email, hire_date, position) VALUES (:fname, :lname, :email, CAST(:hire_date AS DATE), :position)",
+            """
+                INSERT INTO staff.employees (first_name, last_name, email, hire_date, position)
+                VALUES (:fname, :lname, :email, CAST(:hire_date AS DATE), :position)
+            """,
             [
                 [
                     {"name": "fname", "value": {"stringValue": "Robert"}},
@@ -348,7 +357,10 @@ def create_schema_and_ingest_data():
             ],
         ),
         (
-            "INSERT INTO research.projects (title, description, start_date, end_date, funding_amount) VALUES (:title, :desc, CAST(:start AS DATE), CAST(:end AS DATE), :amount)",
+            """
+                INSERT INTO research.projects (title, description, start_date, end_date, funding_amount)
+                VALUES (:title, :desc, CAST(:start AS DATE), CAST(:end AS DATE), :amount)
+            """,
             [
                 [
                     {"name": "title", "value": {"stringValue": "AI in Education"}},
@@ -394,7 +406,10 @@ def create_schema_and_ingest_data():
         ),
         # Add this to the sample_data list in create_schema_and_ingest_data() function
         (
-            "INSERT INTO research.publications (title, authors, publication_date, journal, doi) VALUES (:title, :authors, CAST(:pub_date AS DATE), :journal, :doi)",
+            """
+                INSERT INTO research.publications (title, authors, publication_date, journal, doi)
+                VALUES (:title, :authors, CAST(:pub_date AS DATE), :journal, :doi)
+            """,
             [
                 [
                     {

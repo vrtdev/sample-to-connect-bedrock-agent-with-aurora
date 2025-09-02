@@ -1,5 +1,5 @@
 import boto3
-import json
+# import json
 import time
 import argparse
 
@@ -167,7 +167,7 @@ class BedrockAgentTester:
         print("\nBEDROCK AGENT TEST RESULTS")
         print("=" * 50)
 
-        print(f"\nSingle Test")
+        print("\nSingle Test")
         print("-" * 50)
         print(f"Prompt: {prompt}")
 

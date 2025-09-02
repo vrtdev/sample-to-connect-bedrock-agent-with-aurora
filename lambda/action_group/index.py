@@ -1,7 +1,8 @@
 import json
 import boto3
 import os
-from typing import Dict, Any, Optional, Union
+# from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 from enum import Enum
 from dataclasses import dataclass
 
@@ -188,7 +189,8 @@ def generate_query(question):
     # Construct the prompt with schema context
     contexts = f"""
     <Instructions>
-        Read database schema inside the <database_schema></database_schema> tags which contains the tables and schema information to do the following:
+        Read database schema inside the <database_schema></database_schema> tags which
+        contains the tables and schema information to do the following:
         1. Create a syntactically correct SQL query to answer the question.
         2. Format the query to remove any new line with space and produce a single line query.
         3. Never query for all the columns from a specific table, only ask for a few relevant columns given the question.
@@ -213,7 +215,8 @@ def generate_query(question):
     """
 
     prompt = f"""
-    Human: Use the following pieces of context to provide a concise answer to the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+    Human: Use the following pieces of context to provide a concise answer to the question at the end.
+    If you don't know the answer, just say that you don't know, don't try to make up an answer.
     <context>
     {contexts}
     </context
@@ -329,7 +332,7 @@ def handle_execute(properties, action_group):
                 action_group, "/execute", {"results": results}
             )
         except Exception as e:
-            logger.error(f"Database error: {str(e)}")
+            print(f"Database error: {str(e)}")
             return BedrockResponseBuilder.error(
                 ErrorType.DATABASE_ERROR, action_group, "/execute", str(e)
             )

@@ -15,6 +15,7 @@ def send_cfn_response(event, context, response_status, response_data, reason=Non
         "NoEcho": False,
         "Data": response_data,
     }
+    print(response_body)
 
 
 def handler(event, context):
@@ -50,6 +51,7 @@ def handler(event, context):
                     sql=sql,
                 )
                 print(f"Executed statement: {sql}")
+                print(response)
 
             response_data = {
                 "PhysicalResourceId": f"ReadOnlyUser-{readonly_creds['username']}",
