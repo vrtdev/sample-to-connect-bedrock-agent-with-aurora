@@ -1,6 +1,9 @@
 {
-    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
-    "pg_engine_version": "16.2",
-    "min_acu": 0.5,
-    "max_acu": 4.0
+  "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
+  "pg_engine_version": "16.2",
+  "min_acu": 0.5,
+  "max_acu": 4,
+  "acknowledged-issue-numbers": [
+    34892
+  ]
 }

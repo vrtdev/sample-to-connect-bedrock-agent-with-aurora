@@ -194,9 +194,9 @@ def generate_query(question):
         1. Create a syntactically correct SQL query to answer the question.
         2. Format the query to remove any new line with space and produce a single line query.
         3. Never query for all the columns from a specific table, only ask for a few relevant columns given the question.
-        4. Pay attention to use only the column names that you can see in the schema description. 
-        5. Be careful to not query for columns that do not exist. 
-        6. Pay attention to which column is in which table. 
+        4. Pay attention to use only the column names that you can see in the schema description.
+        5. Be careful to not query for columns that do not exist.
+        6. Pay attention to which column is in which table.
         7. Qualify column names with the table name when needed.
         8. Return only the sql query without any tags.
     </Instructions>
