@@ -1,5 +1,5 @@
 {
-  "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
+  "model_id": "eu.anthropic.claude-3-5-sonnet-20240620-v1:0",
   "pg_engine_version": "16.2",
   "min_acu": 0.5,
   "max_acu": 4,
