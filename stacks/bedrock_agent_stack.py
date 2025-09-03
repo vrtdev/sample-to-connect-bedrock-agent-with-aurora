@@ -61,9 +61,8 @@ class BedrockAgentStack(Stack):
                     "bedrock:InvokeModel",
                 ],
                 resources=[
-                    # "*",
-                    f"arn:aws:bedrock::{Stack.of(self).account}:inference-profile/*",
-                    "arn:aws:bedrock:::foundation-model/*",
+                    f"arn:aws:bedrock:eu-west-*:{Stack.of(self).account}:inference-profile/eu*",
+                    "arn:aws:bedrock:*::foundation-model/*",
                 ],
             )
         )
