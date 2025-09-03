@@ -43,7 +43,7 @@ class RDSAuroraStack(Stack):
             ],
         )
 
-        flow_log = vpc.add_flow_log(
+        vpc.add_flow_log(
             "FlowLog",
             traffic_type=ec2.FlowLogTrafficType.REJECT,
             max_aggregation_interval=ec2.FlowLogMaxAggregationInterval.ONE_MINUTE,
@@ -129,7 +129,7 @@ class RDSAuroraStack(Stack):
         db_instance.add_dependency(db_cluster)
 
         # Construct the ARN
-        cluster_arn = Fn.join(
+        Fn.join(
             ":",
             [
                 "arn",
@@ -188,7 +188,7 @@ class RDSAuroraStack(Stack):
         create_user_lambda = lambda_.Function(
             self,
             "CreateReadOnlyUserHandler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler="index.handler",
             code=lambda_.Code.from_asset("lambda/custom_resource"),
             environment={

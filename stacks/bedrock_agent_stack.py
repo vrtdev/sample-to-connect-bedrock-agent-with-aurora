@@ -61,7 +61,9 @@ class BedrockAgentStack(Stack):
                     "bedrock:InvokeModel",
                 ],
                 resources=[
-                    f"arn:aws:bedrock:{Stack.of(self).region}::foundation-model/*"
+                    # "*",
+                    f"arn:aws:bedrock::{Stack.of(self).account}:inference-profile/*",
+                    "arn:aws:bedrock:::foundation-model/*",
                 ],
             )
         )
@@ -140,12 +142,9 @@ class BedrockAgentStack(Stack):
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=[
-                    "bedrock:InvokeModel",
                     "bedrock:GetInferenceProfile",
                 ],
                 resources=[
-                    "*",
-                    f"arn:aws:bedrock:{Stack.of(self).region}:{Stack.of(self).account}:inference-profile/eu.*",
                     f"arn:aws:bedrock:{Stack.of(self).region}::foundation-model/*"
                 ],
             )

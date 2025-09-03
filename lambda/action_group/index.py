@@ -121,9 +121,8 @@ def get_database_schema():
     # Execute schema query
     response = execute_query(schema_query, as_json=True)
 
-    # Cache the schema
-    schema_text = json.dumps(response["formattedRecords"])
-    return schema_text
+    schema_obj = json.loads(response["formattedRecords"])
+    return schema_obj
 
 
 def generate_message(bedrock_runtime, model_id, system_prompt, messages, max_tokens):
@@ -249,7 +248,7 @@ def generate_query(question):
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": prompt.format(contexts, validated_question)}
+                {"type": "text", "text": prompt}
             ],
         }
     ]
